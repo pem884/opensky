@@ -1,1 +1,1 @@
-"""The opensky component."""
+"""The opensky_ozgav component."""
