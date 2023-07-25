@@ -1,4 +1,4 @@
-"""Sensor for the Open Sky Network."""
+"""Sensor for the Open Sky Network - OzGav Fork."""
 from __future__ import annotations
 
 from datetime import timedelta
@@ -38,7 +38,7 @@ ATTR_ON_GROUND = "on_ground"
 ATTR_SENSOR = "sensor"
 ATTR_STATES = "states"
 
-DOMAIN = "opensky"
+DOMAIN = "opensky_ozgav"
 
 DEFAULT_ALTITUDE = 0
 
@@ -64,7 +64,6 @@ OPENSKY_API_FIELDS = [
     "sensors",
 ]
 
-
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Required(CONF_RADIUS): vol.Coerce(float),
@@ -79,10 +78,10 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 
 
 def setup_platform(
-    hass: HomeAssistant,
-    config: ConfigType,
-    add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None,
+        hass: HomeAssistant,
+        config: ConfigType,
+        add_entities: AddEntitiesCallback,
+        discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
     """Set up the Open Sky platform."""
     latitude = config.get(CONF_LATITUDE, hass.config.latitude)
@@ -131,23 +130,30 @@ class OpenSkySensor(SensorEntity):
     def _get_bbox(self):
         half_side_in_km = self._radius / 1000
         assert half_side_in_km > 0
-        
-        hypotenuse_distance=math.sqrt(2*(math.pow(half_side_in_km,2)))
+
+        hypotenuse_distance = math.sqrt(2 * (math.pow(half_side_in_km, 2)))
         lat = math.radians(self._latitude)
         lon = math.radians(self._longitude)
 
         approx_earth_radius = 6371
-        
-        lat_min = math.asin( math.sin( lat ) * math.cos( hypotenuse_distance / approx_earth_radius ) + math.cos( lat ) * math.sin( hypotenuse_distance / approx_earth_radius ) * math.cos( 225 * ( math.pi / 180 ) ) );
-        lon_min = lon + math.atan2( math.sin( 225 * ( math.pi / 180 ) ) * math.sin( hypotenuse_distance / approx_earth_radius ) * math.cos( lat ), math.cos( hypotenuse_distance / approx_earth_radius ) - math.sin( lat ) * math.sin( lat_min ) );
 
-        lat_max = math.asin( math.sin( lat ) * math.cos( hypotenuse_distance / approx_earth_radius ) + math.cos( lat ) * math.sin( hypotenuse_distance / approx_earth_radius ) * math.cos( 45 * ( math.pi / 180 ) ) );
-        lon_max = lon + math.atan2( math.sin( 45 * ( math.pi / 180 ) ) * math.sin( hypotenuse_distance / approx_earth_radius ) * math.cos( lat ), math.cos( hypotenuse_distance / approx_earth_radius ) - math.sin( lat ) * math.sin( lat_max ) );
+        lat_min = math.asin(
+            math.sin(lat) * math.cos(hypotenuse_distance / approx_earth_radius) + math.cos(lat) * math.sin(
+                hypotenuse_distance / approx_earth_radius) * math.cos(225 * (math.pi / 180)))
+        lon_min = lon + math.atan2(
+            math.sin(225 * (math.pi / 180)) * math.sin(hypotenuse_distance / approx_earth_radius) * math.cos(lat),
+            math.cos(hypotenuse_distance / approx_earth_radius) - math.sin(lat) * math.sin(lat_min))
 
+        lat_max = math.asin(
+            math.sin(lat) * math.cos(hypotenuse_distance / approx_earth_radius) + math.cos(lat) * math.sin(
+                hypotenuse_distance / approx_earth_radius) * math.cos(45 * (math.pi / 180)))
+        lon_max = lon + math.atan2(
+            math.sin(45 * (math.pi / 180)) * math.sin(hypotenuse_distance / approx_earth_radius) * math.cos(lat),
+            math.cos(hypotenuse_distance / approx_earth_radius) - math.sin(lat) * math.sin(lat_max))
         rad2deg = math.degrees
 
         return (rad2deg(lat_min), rad2deg(lon_min), rad2deg(lat_max), rad2deg(lon_max))
-        
+
     @property
     def name(self):
         """Return the name of the sensor."""
@@ -187,11 +193,11 @@ class OpenSkySensor(SensorEntity):
         """Update device state."""
         currently_tracked = set()
         flight_metadata = {}
-        
+
         self._session.auth = (self._username, self._password)
         self._session.verify = False
         auth = self._session.post(OPENSKY_URL, verify=True)
-#        _LOGGER.debug("AUTH %s", auth.headers)
+        #        _LOGGER.debug("AUTH %s", auth.headers)
         url_with_bbox = OPENSKY_API_URL % (
             self._lat_min,
             self._lon_min,
@@ -201,37 +207,37 @@ class OpenSkySensor(SensorEntity):
         states = self._session.get(url_with_bbox, verify=True)
         _LOGGER.debug("HEADERS %s", states.headers)
         try:
-          states = states.json().get(ATTR_STATES)
+            states = states.json().get(ATTR_STATES)
         except:
-          _LOGGER.debug("TEXT %s", states.text)
+            _LOGGER.debug("TEXT %s", states.text)
         if states:
-          for state in states:
-              flight = dict(zip(OPENSKY_API_FIELDS, state))
-              callsign = flight[ATTR_CALLSIGN].strip()
-              if callsign != "":
-                  flight_metadata[callsign] = flight
-              else:
-                  continue
-              if (
-                  (longitude := flight.get(ATTR_LONGITUDE)) is None
-                  or (latitude := flight.get(ATTR_LATITUDE)) is None
-                  or flight.get(ATTR_ON_GROUND)
-              ):
-                  continue
-              distance = util_location.distance(
-                  self._latitude,
-                  self._longitude,
-                  latitude,
-                  longitude,
-              )
-              if distance is None or distance > self._radius:
-                  continue
-              altitude = flight.get(ATTR_ALTITUDE)
-              if altitude is None:
-                  continue
-              if altitude > self._altitude and self._altitude != 0:
-                  continue
-              currently_tracked.add(callsign)
+            for state in states:
+                flight = dict(zip(OPENSKY_API_FIELDS, state))
+                callsign = flight[ATTR_CALLSIGN].strip()
+                if callsign != "":
+                    flight_metadata[callsign] = flight
+                else:
+                    continue
+                if (
+                        (longitude := flight.get(ATTR_LONGITUDE)) is None
+                        or (latitude := flight.get(ATTR_LATITUDE)) is None
+                        or flight.get(ATTR_ON_GROUND)
+                ):
+                    continue
+                distance = util_location.distance(
+                    self._latitude,
+                    self._longitude,
+                    latitude,
+                    longitude,
+                )
+                if distance is None or distance > self._radius:
+                    continue
+                altitude = flight.get(ATTR_ALTITUDE)
+                if altitude is None:
+                    continue
+                if altitude > self._altitude != 0:
+                    continue
+                currently_tracked.add(callsign)
         if self._previously_tracked is not None:
             entries = currently_tracked - self._previously_tracked
             exits = self._previously_tracked - currently_tracked
