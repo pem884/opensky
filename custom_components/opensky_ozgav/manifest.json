@@ -1,8 +1,9 @@
 {
-  "codeowners": "OzGav",
+  "codeowners": ["OzGav"],
   "domain": "opensky_ozgav",
   "name": "OpenSky Network - OzGav Fork",
   "documentation": "https://www.home-assistant.io/integrations/opensky",
   "iot_class": "cloud_polling",
-  "version": "v2.0.0"
+  "version": "v2.0.1",
+  "issue_tracker": "https://github.com/pem884/opensky_ozgav/issues"
 }
