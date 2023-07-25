@@ -1,5 +1,5 @@
 {
-  "codeowners": [OzGav],
+  "codeowners": "OzGav",
   "domain": "opensky_ozgav",
   "name": "OpenSky Network - OzGav Fork",
   "documentation": "https://www.home-assistant.io/integrations/opensky",
